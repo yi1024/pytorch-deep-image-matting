@@ -107,7 +107,8 @@ class VGG16(nn.Module):
         pred_mattes = F.sigmoid(raw_alpha)
 
         if self.stage <= 1:
-            return pred_mattes, 0
+            return pred_mattes, torch.empty_like(pred_mattes)
+            #return pred_mattes, 0
 
         # Stage2 refine conv1
         refine0 = torch.cat((x[:, :3, :, :], pred_mattes),  1)

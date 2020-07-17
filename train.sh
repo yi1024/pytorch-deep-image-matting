@@ -1,9 +1,9 @@
 #/bin/bash
-DATA_ROOT=/home/liuliang/DISK_2T/datasets/matting/Combined_Dataset
+DATA_ROOT=/media/trtd-ubu-003/data2/data/datasets/matting/Combined_Dataset2
 TRAIN_DATA_ROOT=$DATA_ROOT/Training_set/comp
 TEST_DATA_ROOT=$DATA_ROOT/Test_set/comp
 
-CUDA_VISIBLE_DEVICES=0 \
+CUDA_VISIBLE_DEVICES=0,1 \
 python core/train.py \
     --crop_h=320,480,640 \
     --crop_w=320,480,640 \
@@ -13,6 +13,7 @@ python core/train.py \
     --fgDir=$TRAIN_DATA_ROOT/fg \
     --bgDir=$TRAIN_DATA_ROOT/bg \
     --imgDir=$TRAIN_DATA_ROOT/image \
+    --imgbigDir=$TRAIN_DATA_ROOT/image_big \
     --saveDir=model/stage1 \
     --batchSize=1 \
     --nEpochs=12 \
@@ -21,7 +22,7 @@ python core/train.py \
     --wl_weight=0.5 \
     --threads=4 \
     --printFreq=10 \
-    --ckptSaveFreq=1 \
+    --ckptSaveFreq=10 \
     --pretrain=model/vgg_state_dict.pth \
     --cuda \
     --stage=1 \

@@ -4,8 +4,8 @@ import collections
 import os
 
 HOME = os.environ['HOME']
-model_path = "{}/.torch/models/vgg16-397923af.pth".format(HOME)
-#model_path = "/data/liuliang/deep_image_matting/train/vgg16-397923af.pth"
+#model_path = "{}/.torch/models/vgg16-397923af.pth".format(HOME)
+model_path = "../model/stage1/ckpt_best.pth"
 if not os.path.exists(model_path):
     model = torchvision.models.vgg16(pretrained=True)
 assert(os.path.exists(model_path))

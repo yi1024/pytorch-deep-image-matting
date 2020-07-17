@@ -50,6 +50,7 @@ def get_args():
     parser.add_argument('--fgDir', type=str, required=True, help="directory of fg")
     parser.add_argument('--bgDir', type=str, required=True, help="directory of bg")
     parser.add_argument('--imgDir', type=str, default="", help="directory of img")
+    parser.add_argument('--imgbigDir', type=str, default="", help="directory of img_big")
     parser.add_argument('--batchSize', type=int, default=64, help='training batch size')
     parser.add_argument('--nEpochs', type=int, default=20, help='number of epochs to train for')
     parser.add_argument('--step', type=int, default=10, help='epoch of learning decay')
@@ -85,7 +86,7 @@ def get_dataset(args):
 
     normalize = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize(mean = [0.485, 0.456, 0.406],std = [0.229, 0.224, 0.225])
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
     train_set = MatDatasetOffline(args, train_transform, normalize)
@@ -119,7 +120,7 @@ def build_model(args, logger):
         ckpt = torch.load(args.resume)
         start_epoch = ckpt['epoch']
         best_sad = ckpt['best_sad']
-        model.load_state_dict(ckpt['state_dict'],strict=True)
+        model.load_state_dict(ckpt['state_dict'], strict=True)
         logger.info("=> loaded checkpoint '{}' (epoch {} bestSAD {:.3f})".format(args.resume, ckpt['epoch'], ckpt['best_sad']))
     
     return start_epoch, model, best_sad
@@ -193,9 +194,9 @@ def gen_alpha_pred_loss(alpha, pred_alpha, trimap):
     return alpha_loss
 
 
-def ldata(loss):
+def ldata(loss1):
     #return loss.data
-    return loss.data[0]
+    return loss1.item()
 
 
 def train(args, model, optimizer, train_loader, epoch, logger):
@@ -227,7 +228,8 @@ def train(args, model, optimizer, train_loader, epoch, logger):
         optimizer.zero_grad()
 
         pred_mattes, pred_alpha = model(torch.cat((img_norm, trimap / 255.), 1))
-
+        #print('---1---',pred_mattes)
+        #print('---2---',pred_alpha)
         if args.stage == 0:
             # stage0 loss, simple alpha loss
             loss = gen_simple_alpha_loss(alpha, trimap, pred_mattes, args)
@@ -360,8 +362,8 @@ def main():
     args = get_args()
     logger = get_logger(args.log)
     logger.info("Loading args: \n{}".format(args))
-
-    #os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    print(torch.cuda.device_count())
+    #os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
     if args.cuda and not torch.cuda.is_available():
         raise Exception("No GPU found, please run without --cuda")
     if args.cuda:
@@ -369,16 +371,24 @@ def main():
     else:
         torch.manual_seed(args.seed)
 
+
     logger.info("Loading dataset:")
     train_loader = get_dataset(args)
+
+
 
     logger.info("Building model:")
     start_epoch, model, best_sad = build_model(args, logger)
 
+    if args.cuda:
+        print(torch.cuda.device_count())
+        model = model.cuda()
+        if torch.cuda.device_count() > 1:
+            model = nn.DataParallel(model,device_ids=[0, 1])
+
     optimizer = optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr)
     
-    if args.cuda:
-        model = model.cuda()
+
 
     # training
     for epoch in range(start_epoch, args.nEpochs + 1):
